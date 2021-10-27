@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>layui</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="../../../static/lib/layui-v2.6.3/css/layui.css"
+          th:href="@{/lib/layui-v2.6.3/css/layui.css}"
+          media="all">
+    <link rel="stylesheet" href="../../../static/css/public.css" th:href="@{/css/public.css}" media="all">
+</head>
+<body>
+
+
+<div class="layui-fluid">
+    <div class="layui-row layui-col-space15">
+        <!-- 左树 -->
+        <div class="layui-col-sm12 layui-col-md5 layui-col-lg3">
+            <div class="layui-card">
+                <div class="layui-card-body mini-bar" id="departmentTree">
+
+                </div>
+            </div>
+        </div>
+        <!-- 右表-->
+        <div class="layui-col-sm12 layui-col-md7 layui-col-lg9">
+
+            <div class="layui-card">
+                <div class="layui-card-body">
+
+
+                    <table class="layui-hide" id="currentTableId" lay-filter="currentTableFilter"></table>
+
+                    <script type="text/html" id="currentTableBar">
+                        <a class="layui-btn layui-btn-normal layui-btn-xs data-count-edit" lay-event="child">建子机构</a>
+                        <a class="layui-btn layui-btn-normal layui-btn-xs data-count-edit" lay-event="edit">编辑</a>
+                        <a class="layui-btn layui-btn-danger layui-btn-xs data-count-edit" lay-event="del">删除</a>
+                        <a class="layui-btn layui-btn-xs  data-count-delete" lay-event="export">导出</a>
+                    </script>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="../../../static/lib/layui-v2.6.3/layui.js" th:src="@{/lib/layui-v2.6.3/layui.js}" charset="utf-8"></script>
+<script th:inline="javascript">let ctx = [[@{/}]]</script>
+<script th:inline="none">
+    layui.use(['form', 'table', 'jquery', 'tree', 'layer'], function () {
+        let $ = layui.jquery,
+            table = layui.table,
+            layer = layui.layer,
+            tree = layui.tree;
+
+        $.get(ctx + 'department/tree', {}, function (res) {
+            //仅节点左侧图标控制收缩
+            tree.render({
+                elem: '#departmentTree'
+                , id: 'department'
+                , data: res.data
+                , onlyIconControl: true  //是否仅允许节点左侧图标控制展开收缩
+                , click: function (obj) {
+                    let data = obj.data;
+                    table.render({
+                        elem: '#currentTableId',
+                        url: ctx + 'department/list',
+                        defaultToolbar: [],
+                        cols: [[
+                            {type: "checkbox", width: 50},
+                            {align: 'center', title: '编号', sort: true, type: 'numbers', width: 50},
+                            {field: 'id', width: 80, title: 'ID', sort: true, hide: true},
+                            {field: 'pid', width: 80, title: 'ID', sort: true, hide: true},
+
+                            {field: 'name', align: 'center', width: 100, title: '部门名称'},
+                            {field: 'code', align: 'center', width: 100, title: '部门编号'},
+                            {field: 'describ', align: 'center', width: 100, title: '部门描述'},
+                            {field: 'pname', align: 'center', title: '父级部门名称', width: 150},
+                            {title: '操作', minWidth: 280, toolbar: '#currentTableBar', align: "center"}
+                        ]],
+                        limits: [10, 15, 20, 25, 50, 100],
+                        limit: 15,
+                        page: true,
+                        skin: 'line',
+                        where: {id: data.id}
+
+                    });
+                }
+            });
+        })
+
+
+        table.on('tool(currentTableFilter)', function (obj) {
+            let data = obj.data;
+            if (obj.event === 'edit') {
+                let index = layer.open({
+                    title: '编辑机构',
+                    type: 2,
+                    shade: 0.2,
+                    maxmin: true,
+                    shadeClose: true,
+                    area: ['50%', '90%'],
+                    content: ctx + 'user/open/edit',
+                });
+                $(window).on("resize", function () {
+                    layer.full(index);
+                });
+                return false;
+            } else if (obj.event === 'del') {
+                let data = obj.data;
+                layer.confirm('确定删除吗？', function (index) {
+                    $.get(ctx + "user/isDisabled", {isDisabled: data.isDisabled, id: data.id}, function (res) {
+                        layer.msg(res.msg, {icon: 1, time: 1000})
+                        table.reload('currentTableId')
+                    })
+                    layer.close(index);
+                });
+            } else if (obj.event === 'export') {
+
+            } else if (obj.event === 'child') {
+                let index = layer.open({
+                    title: '建子机构',
+                    type: 2,
+                    shade: 0.2,
+                    maxmin: true,
+                    shadeClose: true,
+                    area: ['50%', '90%'],
+                    content: ctx + 'user/open/role',
+                    success: function (layero, index) {
+                        let userId = $("#userId", layero.find("iframe")[0].contentWindow.document);
+                        userId.attr('value', data.id)
+                    }
+                });
+                $(window).on("resize", function () {
+                    layer.full(index);
+                });
+            }
+
+        });
+
+    });
+</script>
+
+</body>
+</html>

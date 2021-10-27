@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="../../../static/lib/layui-v2.6.3/css/layui.css"
+          th:href="@{/lib/layui-v2.6.3/css/layui.css}" media="all">
+    <link rel="stylesheet" href="../../../static/css/public.css" th:href="@{/css/public.css}" media="all">
+</head>
+<body>
+
+<div class="layui-container">
+    <input name="userId" id="userId" type="hidden">
+    <div id="test1"></div>
+</div>
+</body>
+</html>
+<script src="../../../static/lib/layui-v2.6.3/layui.js" th:src="@{/lib/layui-v2.6.3/layui.js}" charset="utf-8"></script>
+<script th:inline="javascript">let ctx = [[@{/}]]</script>
+<script>
+
+    layui.use(['jquery', 'transfer', 'layer'], function () {
+        let transfer = layui.transfer;
+        let $ = layui.jquery;
+        let layer = layui.layer;
+
+        let index = layer.load(0, {shade: false});
+
+        /*解决userId后于ajax渲染问题，让ajax 停顿100毫秒后执行*/
+        setTimeout(function () {
+            let userId = $('#userId').val();
+            $.get(ctx + 'role/transfer', {userId: userId}, function (res) {
+                let data = res.data;
+                let undistributed = [];
+                let i = 0;
+                $.each(data, function (index, ele) {
+                    if (ele.distributed === false) {
+                        undistributed[i++] = ele.value;
+                    }
+                })
+                //渲染
+                transfer.render({
+                    elem: '#test1'  //绑定元素
+                    , title: ['已分配角色', '未分配角色']
+                    , showSearch: true
+                    , data: data
+                    , value: undistributed
+                    , height: 700
+                    , width: 500
+                    , id: 'demo1' //定义索引
+                    , onchange: function (obj, index) {
+                        //index 左边是 0 右边是 1
+                        // layer.alert('来自 <strong>' + arr[index] + '</strong> 的数据：' + JSON.stringify(obj)); //获得被穿梭时的数据
+                        //跟据userId先删除再新增
+                        let roleIds = [];
+                        $.each(obj, function (i, ele) {
+                            roleIds[i++] = ele.value;
+                        })
+
+                        $.ajax({
+                            url: ctx + 'role/user',
+                            type: 'post',
+                            data: {'roleIds': roleIds, 'userId': userId},
+                            success: function (res) {
+                                if (index === 0) {
+                                    layer.alert("取消分配成功", {time: 1000});
+                                } else {
+                                    layer.alert(res.msg, {time: 1000});
+                                }
+
+                            }
+                        })
+
+                    }
+                });
+            })
+        }, 100)
+
+        layer.close(index);
+    });
+
+
+</script>

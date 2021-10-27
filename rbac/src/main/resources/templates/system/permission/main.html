@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>menu</title>
+    <link rel="stylesheet" href="../../../static/lib/layui-v2.6.3/css/layui.css"
+          th:href="@{/lib/layui-v2.6.3/css/layui.css}" media="all">
+    <link rel="stylesheet" href="../../../static/css/public.css" th:href="@{/css/public.css}" media="all">
+    <style>
+        .layui-btn:not(.layui-btn-lg ):not(.layui-btn-sm):not(.layui-btn-xs) {
+            height: 34px;
+            line-height: 34px;
+            padding: 0 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="layuimini-container">
+    <div class="layuimini-main">
+        <div>
+            <div class="layui-btn-group">
+                <button class="layui-btn layui-btn-normal" id="addContents">新增目录</button>
+            </div>
+
+            <div class="layui-btn-group">
+                <button class="layui-btn layui-btn-primary " id="btn-expand">展开</button>
+                <button class="layui-btn layui-btn-primary" id="btn-fold">折叠</button>
+            </div>
+            <table id="munu-table" class="layui-table" lay-filter="munu-table"></table>
+        </div>
+    </div>
+</div>
+<!-- 操作列 -->
+<script type="text/html" id="auth-state">
+    <a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="edit">修改</a>
+    <a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="add">新增</a>
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+</script>
+
+<script src="../../../static/lib/layui-v2.6.3/layui.js" th:src="@{/lib/layui-v2.6.3/layui.js}" charset="utf-8"></script>
+<script src="../../../static/js/lay-config.js?v=1.0.4" th:src="@{/js/lay-config.js?v=1.0.4}" charset="utf-8"></script>
+<script th:inline="javascript">const ctx = [[@{/}]]</script>
+<script th:inline="none">
+    layui.use(['table', 'treetable'], function () {
+        let $ = layui.jquery;
+        let table = layui.table;
+        let treeTable = layui.treetable;
+
+        // 渲染表格
+        layer.load(2);
+        treeTable.render({
+            treeColIndex: 1,              //树形图标显示在第几列
+            treeSpid: 0,                  //最上级的父级id
+            treeIdName: 'id',             //id字段的名称
+            treePidName: 'pid',           //父级节点字段
+            elem: '#munu-table',
+            url: ctx + 'permission/list',
+            page: false,
+            treeDefaultClose: true,       //是否默认折叠
+            cols: [[
+                {field: 'code', width: 100, align: 'center', title: '排序序号', hide: true},
+                {field: 'title', minWidth: 200, title: '菜单名称'},
+                /* {field: 'authority', title: '权限标识'},*/
+                {field: 'icon', title: '图标'},
+                {field: 'pname', title: '父级菜单名称'},
+                {field: 'href', title: '请求路径'},
+                {
+                    field: 'isMenu', width: 80, align: 'center', templet: function (d) {
+                        if (d.type === 0) {
+                            return '<span class="layui-badge layui-bg-gray">按钮</span>';
+                        } else if (d.type === 2) {
+                            return '<span class="layui-badge layui-bg-blue">目录</span>';
+                        } else {
+                            return '<span class="layui-badge-rim">菜单</span>';
+                        }
+                    }, title: '类型'
+                },
+                {
+                    width: 180, align: 'center', title: '操作', templet: '#auth-state'
+                }
+            ]],
+            done: function () {
+                layer.closeAll('loading');
+            }
+        });
+
+        $('#btn-expand').click(function () {
+            treeTable.expandAll('#munu-table');
+        });
+
+        $('#btn-fold').click(function () {
+            treeTable.foldAll('#munu-table');
+        });
+        //添加目录
+        $('#addContents').click(function () {
+            var index = layer.open({
+                title: '添加目录',
+                type: 2,
+                shade: 0.2,
+                maxmin: true,
+                shadeClose: true,
+                area: ['50%', '90%'],
+                content: ctx + 'permission/contents/open/add',
+            });
+            $(window).on("resize", function () {
+                layer.full(index);
+            });
+        })
+
+
+        //监听工具条
+        table.on('tool(munu-table)', function (obj) {
+            let data = obj.data;
+            let layEvent = obj.event;
+
+            if (layEvent === 'del') {
+                layer.confirm('确定删除该选项吗？', function (index) {
+                        $.ajax({
+                            url: ctx + "/permission/contents/delete",
+                            type: "post",
+                            data: JSON.stringify(data),
+                            dataType: "json",
+                            contentType: "application/json",
+                            success: function (res) {
+                                if (res.success === false) {
+                                    layer.msg(res.msg, {icon: 5, time: 1000})
+                                    return;
+                                }
+                                layer.msg(res.msg, {icon: 1, time: 1000})
+                                /*table.reload('munu-table')*/
+                                location.reload();
+                            }
+                        })
+                        layer.close(index);
+                    }
+                );
+
+            } else if (layEvent === 'edit') {
+                if (data.pid === "0") {
+                    let index = layer.open({
+                        title: '修改目录',
+                        type: 2,
+                        shade: 0.2,
+                        maxmin: true,
+                        shadeClose: true,
+                        area: ['50%', '90%'],
+                        content: ctx + 'permission/contents/open/edit',
+                        success: function (layero, index) {
+                            //此id为页面层input标签id
+                            let id = $("input[name='id']", layero.find("iframe")[0].contentWindow.document);
+                            let pid = $("input[name='pid']", layero.find("iframe")[0].contentWindow.document);
+                            let pname = $("input[name='pname']", layero.find("iframe")[0].contentWindow.document);
+                            let title = $("input[name='title']", layero.find("iframe")[0].contentWindow.document);
+                            let icon = $("input[name='icon']", layero.find("iframe")[0].contentWindow.document);
+                            let code = $("input[name='code']", layero.find("iframe")[0].contentWindow.document);
+                            let type = $("input[name='type']", layero.find("iframe")[0].contentWindow.document);
+                            //要传的值
+                            id.attr("value", data.id);
+                            pid.attr("value", data.pid);
+                            pname.attr("value", data.pname);
+                            title.attr("value", data.title);
+                            icon.attr("value", data.icon);
+                            code.attr("value", data.code);
+                            type.attr("value", data.type)
+                        }
+                    });
+                    $(window).on("resize", function () {
+                        layer.full(index);
+                    });
+                } else {
+                    let index = layer.open({
+                        title: '修改菜单',
+                        type: 2,
+                        shade: 0.2,
+                        maxmin: true,
+                        shadeClose: true,
+                        area: ['50%', '90%'],
+                        content: ctx + 'permission/menu/open/edit',
+                        success: function (layero, index) {
+                            let id = $("input[name='id']", layero.find("iframe")[0].contentWindow.document);
+                            let pid = $("input[name='pid']", layero.find("iframe")[0].contentWindow.document);
+                            let pname = $("input[name='pname']", layero.find("iframe")[0].contentWindow.document);
+                            let title = $("input[name='title']", layero.find("iframe")[0].contentWindow.document);
+                            let icon = $("input[name='icon']", layero.find("iframe")[0].contentWindow.document);
+                            let code = $("input[name='code']", layero.find("iframe")[0].contentWindow.document);
+                            let href = $("input[name='href']", layero.find("iframe")[0].contentWindow.document);
+                            //要传的值
+                            id.attr("value", data.id);
+                            pid.attr("value", data.pid);
+                            pname.attr("value", data.pname);
+                            title.attr("value", data.title);
+                            icon.attr("value", data.icon);
+                            code.attr("value", data.code);
+                            href.attr("value", data.href);
+                        }
+                    });
+                    $(window).on("resize", function () {
+                        layer.full(index);
+                    });
+                }
+
+
+            } else if (layEvent === 'add') {
+                let index = layer.open({
+                    title: '新增菜单',
+                    type: 2,
+                    shade: 0.2,
+                    maxmin: true,
+                    shadeClose: true,
+                    area: ['50%', '90%'],
+                    content: ctx + 'permission/menu/open/add',
+                    success: function (layero, index) {
+                        //此id为页面层input标签id
+                        let pid = $("#pid", layero.find("iframe")[0].contentWindow.document);
+                        let pname = $("#pname", layero.find("iframe")[0].contentWindow.document);
+                        //要传的值
+                        pid.attr("value", data.id);
+                        pname.attr("value", data.title);
+                    }
+                });
+                $(window).on("resize", function () {
+                    layer.full(index);
+                });
+            }
+        });
+    })
+    ;
+</script>
+</body>
+</html>

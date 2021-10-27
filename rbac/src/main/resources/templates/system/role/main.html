@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>layui</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="../../../static/lib/layui-v2.6.3/css/layui.css"
+          th:href="@{/lib/layui-v2.6.3/css/layui.css}"
+          media="all">
+    <link rel="stylesheet" href="../../../static/css/public.css" th:href="@{/css/public.css}" media="all">
+</head>
+<body>
+<div class="layuimini-container">
+    <div class="layuimini-main">
+        <fieldset class="table-search-fieldset">
+            <legend>搜索信息</legend>
+            <div style="margin: 10px 10px 10px 10px">
+                <form class="layui-form layui-form-pane" action="">
+                    <div class="layui-form-item">
+                        <div class="layui-inline">
+                            <label class="layui-form-label">角色名称</label>
+                            <div class="layui-input-inline">
+                                <input type="text" name="name" autocomplete="off" class="layui-input">
+                            </div>
+                        </div>
+                        <div class="layui-inline">
+                            <label class="layui-form-label">别名</label>
+                            <div class="layui-input-inline">
+                                <input type="text" name="alias" autocomplete="off" class="layui-input">
+                            </div>
+                        </div>
+                        <div class="layui-inline">
+                            <button type="submit" class="layui-btn layui-btn-primary" lay-submit
+                                    lay-filter="data-search-btn"><i class="layui-icon"></i> 搜 索
+                            </button>
+                            <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </fieldset>
+
+        <script type="text/html" id="toolbarDemo">
+            <div class="layui-btn-container">
+                <button class="layui-btn layui-btn-normal layui-btn-sm data-add-btn" lay-event="add"> 添加</button>
+                <button class="layui-btn layui-btn-sm layui-btn-danger" lay-event="batchDelete">批量删除</button>
+            </div>
+        </script>
+
+        <table class="layui-hide" id="currentTableId" lay-filter="currentTableFilter"></table>
+
+        <script type="text/html" id="currentTableBar">
+            <a class="layui-btn layui-btn-xs layui-btn-danger data-count-delete" lay-event="delete">删除</a>
+        </script>
+
+    </div>
+</div>
+<script src="../../../static/lib/layui-v2.6.3/layui.js" th:src="@{/lib/layui-v2.6.3/layui.js}" charset="utf-8"></script>
+<script th:inline="javascript">let ctx = [[@{/}]]</script>
+<script th:inline="none">
+    layui.use(['form', 'table'], function () {
+        var $ = layui.jquery,
+            form = layui.form,
+            table = layui.table;
+
+        table.render({
+            elem: '#currentTableId',
+            url: ctx + 'role/list',
+            toolbar: '#toolbarDemo',
+            cols: [[
+                {type: "checkbox", width: 50},
+                {align: 'center', title: '编号', sort: true, type: 'numbers', width: 100},
+                {field: 'id', width: 80, title: 'ID', sort: true, hide: true},
+                {field: 'name', align: 'center', width: 135, title: '名称', edit: 'text'},
+                {field: 'alias', align: 'center', width: 135, title: '别名', edit: 'text'},
+                {field: 'description', align: 'center', minWidth: 170, title: '描述', edit: 'text'},
+                {field: 'createTime', align: 'center', minWidth: 170, title: '创建时间', sort: true},
+                {title: '操作', minWidth: 150, toolbar: '#currentTableBar', align: "center"}
+            ]],
+            limits: [10, 15, 20, 25, 50, 100],
+            limit: 15,
+            page: true,
+            skin: 'line',
+
+        });
+
+        // 监听搜索操作
+        form.on('submit(data-search-btn)', function (data) {
+            let result = data.field
+            //执行搜索重载
+            table.reload('currentTableId', {
+                page: {
+                    curr: 1
+                }
+                , where: {
+                    name: result.name,
+                    alias: result.alias
+                }
+            }, 'data');
+
+            return false;
+        });
+
+        /**
+         * toolbar监听事件
+         */
+        table.on('toolbar(currentTableFilter)', function (obj) {
+            if (obj.event === 'add') {  // 监听添加操作
+                var index = layer.open({
+                    title: '添加角色',
+                    type: 2,
+                    shade: 0.2,
+                    maxmin: true,
+                    shadeClose: true,
+                    area: ['100%', '100%'],
+                    content: ctx + 'role/open/add',
+                });
+                $(window).on("resize", function () {
+                    layer.full(index);
+                });
+            } else if (obj.event === 'batchDelete') {  // 监听删除操作
+                let checkStatus = table.checkStatus('currentTableId')
+                    , data = checkStatus.data,
+                    checked = data.length;
+                if (checked === 0) {
+                    layer.msg("请至少选中一个", {icon: 5, time: 1000})
+                    return;
+                }
+                layer.confirm('确定删除该角色吗？', function (index) {
+                    let ids = [];
+                    $.each(data, function (index, element) {
+                        ids[index] = element.id;
+                    })
+                    ids = JSON.stringify(ids);
+                    layer.alert(ids)
+                    $.ajax({
+                        url: ctx + 'role/batch/delete',
+                        type: "post",
+                        data: ids,
+                        dataType: "json",
+                        contentType: "application/json",
+                        success: function (res) {
+                            layer.msg(res.msg, {icon: 1, time: 1000})
+                            table.reload('currentTableId')
+                        }
+                    })
+                    layer.close(index);
+                })
+            }
+        });
+
+        //监听表格复选框选择,拉了,全选获取不到所有选中行的数据
+        table.on('checkbox(currentTableFilter)', function (obj) {
+            /* console.log(obj.data)
+             console.log(obj.data)*/
+        });
+        //表格编辑
+        table.on('edit(currentTableFilter)', function (obj) {
+            let data = JSON.stringify(obj.data);
+            $.ajax({
+                url: ctx + 'role/edit',
+                type: "POST",
+                data: data,
+                dataType: "json",
+                contentType: "application/json",
+                success: function (res) {
+                    layer.msg(res.msg, {icon: 1, time: 1000})
+                    table.reload('currentTableId')
+                }
+            })
+
+
+        })
+        //表格点击事件
+        table.on('tool(currentTableFilter)', function (obj) {
+            if (obj.event === 'delete') {
+                let data = obj.data;
+                layer.confirm('确定删除该角色吗？', function (index) {
+                    $.get(ctx + "role/delete", {id: data.id}, function (res) {
+                        layer.msg(res.msg, {icon: 1, time: 1000})
+                        table.reload('currentTableId')
+                    })
+                    layer.close(index);
+                });
+            }
+
+        });
+
+    })
+    ;
+</script>
+
+</body>
+</html>

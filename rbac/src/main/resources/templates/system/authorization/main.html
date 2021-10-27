@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="../../../static/lib/layui-v2.6.3/css/layui.css"
+          th:href="@{/lib/layui-v2.6.3/css/layui.css}" media="all">
+    <link rel="stylesheet" href="../../../static/css/public.css" th:href="@{/css/public.css}" media="all">
+</head>
+<body>
+<div class="layui-fluid">
+    <div class="layui-row layui-col-space15">
+        <!-- 左树 -->
+        <div class="layui-col-sm12 layui-col-md5 layui-col-lg3">
+            <div class="layui-card">
+                <div class="layui-card-body mini-bar" id="roleTree">
+
+                </div>
+            </div>
+        </div>
+        <!-- 右树 -->
+        <div class="layui-col-sm12 layui-col-md7 layui-col-lg9">
+
+            <div class="layui-card">
+                <div class="layui-card-body">
+                    <button class="layui-btn layui-btn-radius layui-btn-normal" id="save"
+                            style="margin-top: 5px;margin-left: 5px">
+                        <i class="layui-icon">&#xe608;</i>保存
+                    </button>
+                    <hr class="layui-border-blue">
+                    <div class="layui-card-body mini-bar" id="permissionTree">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+</body>
+</html>
+<script src="../../../static/lib/layui-v2.6.3/layui.js" th:src="@{/lib/layui-v2.6.3/layui.js}" charset="utf-8"></script>
+<script th:inline="javascript">let ctx = [[@{/}]]</script>
+<script th:inline="none">
+
+    layui.use(['layer', 'form', 'table', 'util', 'tree'], function () {
+        let $ = layui.jquery;
+        let layer = layui.layer;
+        let util = layui.util;
+        let tree = layui.tree;
+
+
+        let roleId = '';
+        $.get(ctx + 'authority/role/tree', {}, function (res) {
+            let roleData = [];
+            roleData[0] = res.data;
+            // role树渲染
+            //仅节点左侧图标控制收缩
+            tree.render({
+                elem: '#roleTree'
+                , id: 'role'
+                , data: roleData
+                , onlyIconControl: true  //是否仅允许节点左侧图标控制展开收缩
+                , click: function (obj) {
+                    let data = obj.data;
+                    roleId = data.id;
+                    $.get(ctx + 'authority/permission/tree', {roleId: data.id}, function (json) {
+
+                        //渲染表格
+                        tree.render({
+                            elem: '#permissionTree'
+                            , id: 'permission'
+                            , data: json.data
+                            , showCheckbox: true
+                            , onlyIconControl: true  //是否仅允许节点左侧图标控制展开收缩
+                            , click: function (obj) {
+
+                            }
+                        });
+
+                    })
+
+                }
+            });
+        })
+
+        let index = 0;
+        let permissionIds = [];
+
+        function objArray(obj) {
+            $.each(obj, function (i, ele) {
+                permissionIds[index++] = ele.id;
+                if (ele.children != null) {
+                    objArray(ele.children)
+                }
+            })
+        }
+
+
+        $('#save').on('click', function () {
+            if (roleId === null || roleId === '') {
+                layer.msg("靓仔,先点击一个角色呗", {icon: 1, time: 1000})
+                return;
+            }
+            let checkData = tree.getChecked('permission');
+            objArray(checkData);
+            console.log(permissionIds)
+            $.ajax({
+                url: ctx + 'authority/role-permission/save',
+                data: {permissionIds, roleId},
+                type: 'post',
+                success: function (res) {
+                    layer.msg(res.msg, {icon: 1, time: 1000})
+                    $.get(ctx + 'authority/permission/tree', {roleId: data.id}, function (json) {
+                        //成功之后重新渲染树
+                        tree.reload('permission', {data: json.data});
+                    })
+                    //置空
+                    permissionIds = [];
+                    roleId = '';
+
+
+                }
+            })
+
+        })
+
+    });
+
+
+</script>

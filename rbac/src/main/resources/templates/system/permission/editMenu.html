@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>layui</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="../../../static/lib/layui-v2.6.3/css/layui.css"
+          th:href="@{/lib/layui-v2.6.3/css/layui.css}" media="all">
+    <link rel="stylesheet" href="../../../static/css/public.css" th:href="@{/css/public.css}" media="all">
+    <style>
+        body {
+            background-color: #ffffff;
+        }
+
+        input[type=text] {
+            width: 400px;
+        }
+
+    </style>
+</head>
+<body>
+<div class="layui-form layuimini-form" style="margin: 0 auto">
+    <input name="id" hidden>
+    <input name="type" hidden>
+    <input type="text" name="pid" id="pid" value="" hidden>
+    <div class="layui-form-item">
+        <label class="layui-form-label">上级目录</label>
+        <div class="layui-input-inline">
+            <input type="text" name="pname" id="pname" value="" class="layui-input layui-disabled" disabled>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label required">菜单名称</label>
+        <div class="layui-input-inline">
+            <input type="text" name="title" lay-verify="required" lay-reqtext="菜单名称不能为空" placeholder="请输入菜单名称"
+                   value="" class="layui-input">
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label required">图标</label>
+        <div class="layui-input-inline">
+            <input type="text" name="icon" lay-verify="required" lay-reqtext="图标不能为空" placeholder="请输入图标代码"
+                   value="" class="layui-input">
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label required">请求路径</label>
+        <div class="layui-input-inline">
+            <input type="text" name="href" lay-verify="required" lay-reqtext="请求路径不能为空" placeholder="请输入请求路径"
+                   value="" class="layui-input">
+
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">排序序号</label>
+        <div class="layui-input-inline">
+            <input type="text" name="code" placeholder="请输入排序序号"
+                   value="" class="layui-input">
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <div class="layui-input-block">
+            <button class="layui-btn layui-btn-normal" lay-submit lay-filter="saveBtn">确认保存</button>
+        </div>
+    </div>
+</div>
+<script src="../../../static/lib/layui-v2.6.3/layui.js" th:src="@{/lib/layui-v2.6.3/layui.js}" charset="utf-8"></script>
+<script th:inline="javascript">let ctx = [[@{/}]]</script>
+<script>
+    layui.use(['form'], function () {
+        var form = layui.form,
+            layer = layui.layer,
+            $ = layui.$;
+        //监听提交
+        form.on('submit(saveBtn)', function (data) {
+            let menu = JSON.stringify(data.field);
+            //  layer.alert(menu)
+            $.ajax({
+                url: ctx + 'permission/menu/edit',
+                type: 'post',
+                data: menu,
+                dataType: 'json',
+                contentType: 'application/json',
+                success: function (res) {
+                    layer.msg(res.msg, {icon: 1, time: 1000})
+                    parent.location.reload();//刷新父页面，注意一定要在关闭当前iframe层之前执行刷新
+                    let iframeIndex = parent.layer.getFrameIndex(window.name);
+                    parent.layer.close(iframeIndex);
+                }
+            })
+            return false;
+        });
+
+
+    });
+</script>
+</body>
+</html>

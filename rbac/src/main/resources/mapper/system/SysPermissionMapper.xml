@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huaiwei.rbac.mapper.system.SysPermissionMapper">
+
+    <select id="selectPermissionList" resultType="com.huaiwei.rbac.entity.system.SysPermission">
+        SELECT *
+        FROM sys_permission
+        WHERE id IN (
+            SELECT permission_id
+            FROM sys_role_permission
+            WHERE role_id IN
+                  (SELECT role_id FROM sys_role_user WHERE user_id = (SELECT id FROM sys_user WHERE id = #{userId}))
+        )
+        order by code asc
+    </select>
+
+    <select id="selectSysPermissionByroleId" resultType="com.huaiwei.rbac.entity.system.SysPermission">
+        select *
+        from sys_permission
+        where id in (select permission_id from sys_role_permission where role_id = #{roleId})
+    </select>
+    <select id="selectUnSysPermissionByroleId" resultType="com.huaiwei.rbac.entity.system.SysPermission">
+        select *
+        from sys_permission
+        where id not in (select permission_id from sys_role_permission where role_id = #{roleId})
+    </select>
+
+</mapper>
