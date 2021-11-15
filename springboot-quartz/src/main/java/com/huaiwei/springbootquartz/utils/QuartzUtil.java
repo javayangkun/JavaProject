@@ -4,8 +4,11 @@ import com.huaiwei.springbootquartz.domian.QuartzInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 
 @Slf4j
@@ -52,6 +55,12 @@ public class QuartzUtil {
         try {
             scheduler.scheduleJob(detail, cron);
             /*保存QuartzInfo*/
+            String sql = "insert into quartz_info(job_name,job_class,job_description,trigger_Name,cronExpression,trigger_Description) " +
+                    "values(?,?,?,?,?,?)";
+            if (info.getId() == null || info.getId() == -1) {
+                template.update(sql, info.getJobName(), info.getJobClass(),
+                        info.getJobDescription(), info.getTriggerName(), info.getCronExpression(), info.getTriggerDescription());
+            }
         } catch (SchedulerException e) {
             log.error("调度定时任务出错", e);
         }
@@ -60,14 +69,15 @@ public class QuartzUtil {
     /**
      * 根据定时任务名称从调度器当中删除定时任务
      *
-     * @param scheduler 调度器
-     * @param jobName   任务名称（唯一）
+     * @param jobName 任务名称（唯一）
      */
-    public void deleteScheduleJob(Scheduler scheduler, String jobName) {
+    public void deleteScheduleJob(String jobName) {
         JobKey jobKey = JobKey.jobKey(jobName);
         try {
             scheduler.deleteJob(jobKey);
             /*删除 QuartzInfo */
+            String sql = "delete from quartz_info where job_name = ?";
+            template.update(sql, jobName);
         } catch (SchedulerException e) {
             log.error("删除定时任务出错", e);
         }
@@ -77,14 +87,15 @@ public class QuartzUtil {
     /**
      * 根据任务名称暂停定时任务
      *
-     * @param scheduler 调度器
-     * @param jobName   任务名称（唯一）
+     * @param jobName 任务名称（唯一）
      */
-    public void pauseScheduleJob(Scheduler scheduler, String jobName) {
+    public void pauseScheduleJob(String jobName) {
         JobKey jobKey = JobKey.jobKey(jobName);
         try {
             scheduler.pauseJob(jobKey);
             /*修改info 状态为暂停*/
+            String sql = "update quartz_info set status = 0 where job_Name = ?";
+            template.update(sql, jobName);
         } catch (SchedulerException e) {
             log.error("暂停定时任务出错", e);
         }
@@ -93,14 +104,15 @@ public class QuartzUtil {
     /**
      * 根据任务名称恢复定时任务
      *
-     * @param scheduler 调度器
-     * @param jobName   任务名称（唯一）
+     * @param jobName 任务名称（唯一）
      */
-    public void resumeScheduleJob(Scheduler scheduler, String jobName) {
+    public void resumeScheduleJob(String jobName) {
         JobKey jobKey = JobKey.jobKey(jobName);
         try {
             scheduler.resumeJob(jobKey);
             /*修改status数据为正运行*/
+            String sql = "update quartz_info set status = 1 where job_Name = ?";
+            template.update(sql, jobName);
         } catch (SchedulerException e) {
             log.error("恢复定时任务出错", e);
         }
@@ -110,10 +122,9 @@ public class QuartzUtil {
     /**
      * 更新定时任务
      *
-     * @param scheduler   调度器
      * @param triggerName 调度器名称
      */
-    public void updateScheduleJob(Scheduler scheduler, String triggerName, String cronExpression) {
+    public void updateScheduleJob(String triggerName, String cronExpression) {
         try {
             //获取到对应任务的触发器
             TriggerKey triggerKey = TriggerKey.triggerKey(triggerName);
@@ -124,9 +135,16 @@ public class QuartzUtil {
             trigger = trigger.getTriggerBuilder().withIdentity(triggerKey).withSchedule(scheduleBuilder).build();
             //重置对应的job
             scheduler.rescheduleJob(triggerKey, trigger);
+            /*更新数据库信息*/
+            String sql = "update quartz_info set cronExpression = ? where trigger_Name = ? ";
+            template.update(sql, cronExpression, triggerName);
         } catch (SchedulerException e) {
             log.error("更新定时任务出错", e);
         }
     }
 
+    public List<QuartzInfo> quartzInfoList() {
+        String sql = "select * from quartz_info";
+        return template.query(sql, new BeanPropertyRowMapper<>(QuartzInfo.class));
+    }
 }

@@ -1,11 +1,13 @@
 package com.huaiwei.springbootquartz.domian;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
+import springfox.documentation.annotations.ApiIgnore;
 
 @Data
 public class QuartzInfo {
+    @JsonIgnore
     private Integer id;
-
     /*任务名称*/
     private String jobName;
     /*任务执行类*/
