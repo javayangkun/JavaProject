@@ -14,7 +14,7 @@ class JdbcTemplateApplicationTests {
     @Test
     void test1() {
 
-       // java -jar app-0.0.1-SNAPSHOT.jar --jasypt.encryptor.password=xxxxx
+        // java -jar app-0.0.1-SNAPSHOT.jar --jasypt.encryptor.password=xxxxx
         String url = encryptor.encrypt("jdbc:mysql://192.168.134.135:3306/rbac?serverTimezone=UTC&useSSL=false&characterEncoding=utf8");
         String name = encryptor.encrypt("root");
         String password = encryptor.encrypt("12321573");
@@ -23,4 +23,10 @@ class JdbcTemplateApplicationTests {
         System.out.println(password);
     }
 
+    @Test
+    void test2() {
+        String str = "abc";
+        String str2 = "abc";
+        System.out.println(str == str2);
+    }
 }
