@@ -14,15 +14,26 @@ import java.util.List;
 @Slf4j
 @Component
 public class QuartzUtil {
-    /*此处应该有操作数据库的类*/
 
     private final Scheduler scheduler;
     private final JdbcTemplate template;
 
+    /**
+     * 初始化所有定时任务
+     *
+     * @param scheduler 调度器
+     * @param template  jdbcApi
+     */
     @Autowired
     public QuartzUtil(Scheduler scheduler, JdbcTemplate template) {
         this.scheduler = scheduler;
         this.template = template;
+        String sql = "select * from quartz_info where status = 1 ";
+        /*从数据库中查询所有状态为1的定时任务*/
+        List<QuartzInfo> list = this.template.query(sql, new BeanPropertyRowMapper<>(QuartzInfo.class));
+        for (QuartzInfo info : list) {
+            this.createJob(info);
+        }
     }
 
     /**
@@ -143,6 +154,11 @@ public class QuartzUtil {
         }
     }
 
+    /**
+     * 所有定时任务列表
+     *
+     * @return List<QuartzInfo>
+     */
     public List<QuartzInfo> quartzInfoList() {
         String sql = "select * from quartz_info";
         return template.query(sql, new BeanPropertyRowMapper<>(QuartzInfo.class));

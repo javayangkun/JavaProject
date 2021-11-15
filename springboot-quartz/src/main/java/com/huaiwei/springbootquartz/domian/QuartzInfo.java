@@ -2,7 +2,6 @@ package com.huaiwei.springbootquartz.domian;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
-import springfox.documentation.annotations.ApiIgnore;
 
 @Data
 public class QuartzInfo {
